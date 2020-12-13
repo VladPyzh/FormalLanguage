@@ -1,14 +1,14 @@
-//
-// Created by akhtyamovpavel on 5/1/20.
-//
-
 #include "Tests.h"
 #include "Prac.h"
 
-TEST_F(TestAutomat, main_test1) {
+TEST(Basic_tests, basic_1) {
     ASSERT_TRUE(solve("ab+c.aba.*.bac.+.+*", "babc") == 3);
 }
 
-TEST_F(TestAutomat, main_test2) {
+TEST(Basic_tests, basic_2) {
     ASSERT_TRUE(solve("acb..bab.c.*.ab.ba.+.+*a.", "abbaa") == 5);
+}
+
+TEST_F(TestAutomat, test_1) {
+    Automat automat_a({'a', 'b'});
 }

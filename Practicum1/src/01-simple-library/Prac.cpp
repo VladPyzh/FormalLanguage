@@ -10,6 +10,9 @@ class Automat {
     std::vector<int> get_empty_connected(int index);
     int find_longest_from_here(const std::vector<int>&,  std::string, int);
     friend std::ostream& operator <<(std::ostream& out, const Automat& a);
+    void complete_empty_consequence(int, int, Automat&);
+    void handle_terminal_vertexes(int, int, Automat&);
+    int update_value(int, int, const std::string&);
 public:
     int find_longest_substr(std::string task);
     std::vector<int> reachable ();
@@ -192,31 +195,39 @@ void Automat::add_edge(int start, int finish, char symbol) {
     graph[start].emplace_back(finish, symbol);
 }
 
+void Automat::complete_empty_consequence(int start, int hub, Automat& ans) {
+    for (auto to : graph[hub]) {
+        if (to.second != '1') {
+            ans.add_edge(start, to.first, to.second);
+        }
+    }
+}
+
+void Automat::handle_terminal_vertexes(int start, int hub, Automat& ans) {
+    for (int terminal_index : terminal) {
+        if (terminal_index == hub) {
+            bool contains_i = false;
+            for (size_t j = 0; j < ans.terminal.size(); ++j) {
+                if (ans.terminal[j] == static_cast<int>(start)) {
+                    contains_i = true;
+                    break;
+                }
+            }
+            if (!contains_i) {
+                ans.terminal.emplace_back(start);
+                break;
+            }
+        }
+    }
+}
+
 void Automat::delete_empty_edges() {
     Automat ans(alphabet);
     for (size_t i = 0; i < graph.size(); ++i) {
         std::vector<int> empty_ways = get_empty_connected(i);
         for (int k : empty_ways) {
-            for (auto to : graph[k]) {
-                if (to.second != '1') {
-                    ans.add_edge(i, to.first, to.second);
-                }
-            }
-            for (int terminal_index : terminal) {
-                if (terminal_index == k) {
-                    bool containts_i = false;
-                    for (size_t j = 0; j < ans.terminal.size(); ++j) {
-                        if (ans.terminal[j] == static_cast<int>(i)) {
-                            containts_i = true;
-                            break;
-                        }
-                    }
-                    if (!containts_i) {
-                        ans.terminal.emplace_back(i);
-                        break;
-                    }
-                }
-            }
+            complete_empty_consequence(i, k, ans);
+            handle_terminal_vertexes(i, k, ans);
         }
     }
     *this = ans;
@@ -240,7 +251,6 @@ Automat Automat::DFA() {
             std::set<int> vertex_by_letter;
             for (int old_vertexes : new_vertexes[cur_index]) {
                 for (auto [to, symbol] : graph[old_vertexes]) {
-                    //std::cout << old_vertexes << " " << to << " " << symbol << " " << letter << std::endl;
                     if (symbol == letter) {
                         vertex_by_letter.insert(to);
                     }
@@ -267,27 +277,31 @@ Automat Automat::DFA() {
     return ans;
 }
 
+int Automat::update_value(int index, int vertex, const std::string& regex) {
+    int letter = index;
+    int cur_vertex = vertex;
+    while (letter < regex.size()) {
+        bool flag = false;
+        for (auto [to, symbol] : graph[cur_vertex]) {
+            if (symbol == regex[letter]) {
+                cur_vertex = to;
+                letter++;
+                flag = true;
+                break;
+            }
+        }
+        if (!flag) {
+            break;
+        }
+    }
+    return letter - index;
+}
+
 int Automat::find_max(std::string regex) {
     int ans = 0;
     for (int vertex = 0; vertex < size(); ++vertex) {
         for (int index = 0; index < regex.size(); ++index) {
-            int letter = index;
-            int cur_vertex = vertex;
-            while (letter < regex.size()) {
-                bool flag = false;
-                for (auto [to, symbol] : graph[cur_vertex]) {
-                    if (symbol == regex[letter]) {
-                        cur_vertex = to;
-                        letter++;
-                        flag = true;
-                        break;
-                    }
-                }
-                if (!flag) {
-                    break;
-                }
-            }
-            ans = std::max(ans, letter - index);
+            ans = std::max(update_value(index, vertex, regex), ans);
         }
     }
     return ans;
