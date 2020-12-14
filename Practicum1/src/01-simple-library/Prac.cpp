@@ -1,49 +1,34 @@
 #include "Prac.h"
 
-class Automat {
-    std::vector<std::vector<std::pair<int, char>>> graph;
-    std::vector<int> terminal;
-    std::vector<char> alphabet;
-    friend void unite(Automat&, Automat&);
-    friend void concatenation(Automat&, Automat&);
-    friend void star(Automat& a);
-    std::vector<int> get_empty_connected(int index);
-    int find_longest_from_here(const std::vector<int>&,  std::string, int);
-    friend std::ostream& operator <<(std::ostream& out, const Automat& a);
-    void complete_empty_consequence(int, int, Automat&);
-    void handle_terminal_vertexes(int, int, Automat&);
-    int update_value(int, int, const std::string&);
-public:
-    int find_longest_substr(std::string task);
-    std::vector<int> reachable ();
-    void add_edge(int start, int finish, char symbol);
-    void delete_empty_edges();
-    Automat DFA();
-    int find_max(std::string);
-
-    Automat(char letter, std::vector<char> alphabet) : alphabet(alphabet) {
-        std::vector<std::pair<int, char>> start_vertex;
-        std::vector<std::pair<int, char>> end_vertex;
-        terminal.emplace_back(1);
-        start_vertex.emplace_back(1, letter);
-        graph.emplace_back(start_vertex);
-        graph.emplace_back(end_vertex);
-    }
-
-    Automat(int a, int b, std::vector<char> alphabet) : alphabet(alphabet) {
-        std::vector<std::pair<int, char>> buf;
-        for (int i = 0; i < a; ++i) {
-            graph.emplace_back(buf);
+bool Automat::operator==(const Automat& a) {
+    for (size_t i = 0; i < graph.size(); ++i) {
+        for (size_t j = 0; j < graph[i].size(); ++j) {
+            if (graph[i][j] != a.graph[i][j]) {
+                return false;
+            }
         }
-        terminal.emplace_back(b);
     }
-    
-    Automat(std::vector<char> alphabet) : alphabet(alphabet) {}
-
-    size_t size() const { 
-        return graph.size();
+    for (size_t i = 0; i < terminal.size(); ++i) {
+        if (a.terminal[i] != terminal[i]) {
+            return false;
+        }
     }
-};
+    return true;
+}
+ 
+std::ostream& operator<< (std::ostream& out, const Automat& automat) {
+    out << "Edges:\n";
+    for (size_t i = 0; i < automat.graph.size(); ++i) {
+        for (auto edge: automat.graph[i]) {
+            out << i << "--->" << edge.first << " with " << edge.second << "\n";
+        }
+    }
+    out << "\nTerminals:\n";
+    for (auto vertex : automat.terminal) {
+        out << vertex << " ";
+    }
+    return out;
+}
 
 void unite(Automat& a, Automat& b) {
     int old_a_size = a.size();
@@ -63,7 +48,7 @@ void unite(Automat& a, Automat& b) {
             a.terminal.emplace_back(b.terminal[i] + old_a_size - 1);
         } else {
             bool a_containts_0 = false;
-            for (size_t k = 0; k < a.terminal.size(); ++i) {
+            for (size_t k = 0; k < a.terminal.size(); ++k) {
                 if (a.terminal[k] == 0) {
                     a_containts_0 = true;
                     break;
@@ -71,6 +56,7 @@ void unite(Automat& a, Automat& b) {
             }
             if (!a_containts_0) {
                 a.terminal.emplace_back(0);
+                std::sort(a.terminal.begin(), a.terminal.end());
             }
         }
     }
@@ -155,6 +141,14 @@ Automat parse_regex(std::string regex) {
         }
     }
     return polish_stack[0];
+}
+
+void Automat::make_terminal(int k) {
+    if (k > graph.size() - 1) {
+        return;
+    }
+    terminal.emplace_back(k);
+    std::sort(terminal.begin(), terminal.end());
 }
 
 std::vector<int> Automat::get_empty_connected(int index) {
