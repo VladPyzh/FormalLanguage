@@ -9,7 +9,7 @@
 #include <algorithm>
 
 bool is_terminal(char a) {
-    return 'A' < a && a < 'Z';
+    return ('a' <= a && a <= 'z') || a == '1' || a == '$';
 }
 
 void Rule_with_dot::parse_rule(const Grammar_rule& current_rule, std::set<Rule_with_dot>& ans, const Grammar& grammar) const {
@@ -27,7 +27,7 @@ void Rule_with_dot::parse_rule(const Grammar_rule& current_rule, std::set<Rule_w
 }
 
 std::set<Rule_with_dot> Rule_with_dot::modificate_rule(const Grammar& grammar) const {
-    if (door_position == expression.size() || !is_terminal(expression[door_position])) {
+    if (door_position == expression.size() || is_terminal(expression[door_position])) {
         return {*this};
     }
     std::set<Rule_with_dot> ans;
@@ -86,16 +86,16 @@ void Grammar::preprocess() {
     }
 }
 
-bool Grammar::handle_not_terminal(char current_symbol, const Grammar_rule& rule) {
+bool Grammar::handle_terminal(char current_symbol, const Grammar_rule& rule) {
     if (first_symbol[rule.non_terminal - FIRST_TERM].find(current_symbol) == first_symbol[rule.non_terminal - FIRST_TERM].end()) {
         first_symbol[rule.non_terminal - FIRST_TERM].insert(current_symbol);
     }
     return true;
 }
 
-bool Grammar::handle_terminal(char current_symbol, const Grammar_rule& rule) {
+bool Grammar::handle_not_terminal(char current_symbol, const Grammar_rule& rule) {
     for (char symbol : first_symbol[current_symbol - FIRST_TERM]) {
-        if (first_symbol[rule.non_terminal - FIRST_TERM].find(symbol) == first_symbol[rule.non_terminal - FIRST_TERM].end()) {
+        if (symbol != '1' && first_symbol[rule.non_terminal - FIRST_TERM].find(symbol) == first_symbol[rule.non_terminal - FIRST_TERM].end()) {
             first_symbol[rule.non_terminal - FIRST_TERM].insert(symbol);
             return true;
         }    
@@ -106,11 +106,11 @@ bool Grammar::handle_terminal(char current_symbol, const Grammar_rule& rule) {
 bool Grammar::use_rule_update(const Grammar_rule& rule) {
     bool flag = false;  
     for (char current_symbol : rule.expression) {
-        if (!is_terminal(current_symbol)) {
-            handle_not_terminal(current_symbol, rule);
+        if (is_terminal(current_symbol)) {
+            handle_terminal(current_symbol, rule);
             return true;
         } else {
-            if(handle_terminal(current_symbol, rule)) {
+            if(handle_not_terminal(current_symbol, rule)) {
                 flag = true;
             }
             if (first_symbol[current_symbol - FIRST_TERM].find('1') == first_symbol[current_symbol - FIRST_TERM].end()) {
@@ -118,6 +118,7 @@ bool Grammar::use_rule_update(const Grammar_rule& rule) {
             }
         }
     }
+    first_symbol[rule.non_terminal - FIRST_TERM].insert('1');
     return flag;
 }
 
@@ -132,16 +133,18 @@ void Grammar::check_empty_rule(bool& flag, char symbol, std::set<char>& ans) con
 }
 
 bool Grammar::parse_symbol(char symbol, std::set<char>& ans) const {
-    if (is_terminal(symbol)) {
+    if (!is_terminal(symbol)) {
         bool flag = false;
         check_empty_rule(flag, symbol, ans);
         if (!flag) {
             return true;
+        } else {
+            return false;
         }
     } else {
         ans.insert(symbol);
     }
-    return false;
+    return true;
 }
 
 std::set<char> Grammar::get_first_symbols(const std::vector<char>& input) const {

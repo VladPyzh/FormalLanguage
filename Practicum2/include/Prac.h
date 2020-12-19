@@ -59,8 +59,8 @@ struct Grammar {
 private:
     void check_empty_rule(bool& check, char symbol, std::set<char>& ans) const;
     bool parse_symbol(char symbol, std::set<char>& ans) const;
-    bool handle_not_terminal(char current_symbol, const Grammar_rule& rule);
     bool handle_terminal(char current_symbol, const Grammar_rule& rule);
+    bool handle_not_terminal(char current_symbol, const Grammar_rule& rule);
     bool use_rule_update(const Grammar_rule&);
 };
 
